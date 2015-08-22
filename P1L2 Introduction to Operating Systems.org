@@ -1,0 +1,171 @@
+* 01 - LESSON PREVIEW
+** Simple OS Definition
+   A special piece of software that abstracts and arbitrates the underlying hardware
+   system.
+* 02 - VISUAL METAPHOR
+  An operating system is like a toy shop manager
+**  Toy Shop Manager
+  - Directs operational resources
+    - control use of employee time, parts, tools; scheduling, allocation of resources;
+      determine which employees work on which orders and with which tools.
+  - Enforces working policies
+    - fairness, safety, clean-up; how workers on two different orders share resources
+      (parts, tools)
+  - Mitigates difficulty of complex tasks
+    - simplifies operation, optimizes performance; establish and maintain order; handling
+      workload
+**  Operating System
+  - Directs operational resources
+    - control use of CPU, memory, peripheral devices; decides how resources are allocated
+      to applications
+  - Enforces working policies
+    - e.g., fair resource access, limits to resource usage; limit number of open files per
+      process or other thresholds
+  - Mitigates difficulty of complex tasks
+    - abstract hardware details (system calls)
+* 03 - WHAT IS AN OPERATING SYSTEM
+  The layer of system software that sits between the complex hardware and all of the
+  higher-level applications.
+  - hide complex hardware
+  - resource allocation/management
+  - provide isolation & protection
+** Complex Hardware
+   - CPU, GPU, Main Memory, USB, Ethernet/Wi-fi Card, HDD/SSD
+* 04 - OPERATING SYSTEM DEFINITION
+  An operating system is a layer of system software that:
+  - directly has privileged access to the underlying hardware;
+  - hides the hardware complexity;
+  - manages hardware on behalf of one or more applications according to some pre-defined
+    policies
+  - In addition, it ensures that applications are isolated and protected from one another
+* 05 - OPERATING SYSTEM COMPONENTS QUIZ
+  Which of the following are likely components of an operating system. Check all that apply.
+  [-] file editor                        [-] cache memory
+  [X] file system                        [-] web browser
+  [X] device driver                      [X] scheduler
+* 07 - ABSTRACTION OR ARBITRATION QUIZ
+  For the following options, indicate if they are examples of abstraction (B) or
+  arbitration (R).
+  [R] distributing memory between multiple processes
+  [B] supporting different types of speakers
+  [B] interchangeable access to hard disk or SSD
+* 09 - OPERATING SYSTEM EXAMPLES
+** Desktop
+** Embedded/Mobile/Tablet
+* 10 - OS ELEMENTS
+** Abstractions
+   - process, thread, file, socket, memory page
+** Mechanisms
+   - create, schedule, open, write, allocate
+** Policies
+   - least-recently used (LRU), earliest deadline first (EDF)
+* 11 - OS ELEMENTS EXAMPLE
+  Memory Management Example
+** Abstractions
+   - memory page
+** Mechanism
+   - allocate, map to a process
+** Policies
+   - least recently used - LRU
+     Pages that have been least recently used get moved out of physical memory (DRAM ) and
+     onto the disk (known also as swapping)
+* 12 - OS DESIGN PRINCIPLES
+** Separation of Mechanism & Policy
+   - implement flexible mechanisms to support many policies
+   - e.g., LRU, LFU, random
+** Optimize for the Common Case
+   - Where will the OS be used?
+   - What will the user want to execute on that machine?
+   - What are the workload requirements?
+* 13 - USER / KERNEL PROTECTION BOUNDARY
+** User-Level
+   - unprivileged mode
+   - applications
+** Kernel-Level
+   - privileged mode
+   - operating system
+   - memory
+   - cpu
+   - OS kernel
+   - privileged, direct hardware access
+** User-Kernel Switch
+   Communication at the boundary
+   - supported by hardware
+     - trap instructions
+     - system call (request for OS to perform action on application's behalf)
+       - open (file)
+       - send (socket)
+       - malloc (memory)
+     - signals (mechanism for OS to pass notifications into the application)
+   - "privilege bit" set in the CPU where instructions directly manipulating hardware are
+     permitted
+   - when in user-mode, privilege bit is not set and operations attempting privileged 
+     access to hardware are not permitted, and a TRAP occurs, leaving user-mode and allowing
+     the operating system to handle the trap, by either deciding to grant access or 
+     terminate the process
+* 14 - SYSTEM CALL FLOWCHART
+  user process executing => calls system call => [trap (mode bit = 0) => execute system call
+  => return (mode bit = 1)] => return from system call
+  The section in brackets occurs at the kernel level (in the OS)
+  - involves changing execution context from user mode to kernel mode and back again,
+    passing arguments to system calls, jumping around in memory to execute those system calls
+** To make a system call, an application must:
+   - write arguments
+   - save relevant data at well-defined location
+   - make system call
+   - arguments can be passed directly to the operating system, or they can specify their
+     address in register
+   - in synchronous mode, the process will wait until the system call completes
+* 15 - CROSSING THE USER / KERNEL PROTECTION BOUNDARY
+** User / Kernel Transitions
+   - necessary step in application exectution; may need access to certain hardware; or 
+     request change in hardware allocation for the application (more CPU, more memory)
+   - hardware supported
+     - e.g., traps on illegal instructions or memory accesses requiring special privilege
+   - involves a number of instructions
+     - e.g., ~50-100ns on a 2GHz machine running Linux to make the system call transition
+   - switches locality
+     - affects hardware cache usage
+     - system brings its data into hardware cache, potentially moving application data out
+       of the cache, requiring extra cycles to then have it brought back in when execution
+       returns to the application
+   - NOT CHEAP
+* 16 - BASIC OS SERVICES
+  At a basic level, these services are directly linked to hardware components
+** Scheduler (CPU)
+** Memory Manager
+** Block Device Driver (Disk storage)
+  Some higher level abstractions are implemented as services too
+** File System
+- process management
+- file management
+- device management
+- memory management
+- storage management
+- security
+- ...
+* 17 - SYSTEM CALLS QUIZ
+  On a 64-bit Linux-based OS, which sysem call is used to...
+  - send a signal to a process?           kill
+  - set the group identity of a process?  setgid
+  - mount a file system?                  mount
+  - read / write system parameters?       sysctl
+  Use single word answers, e.g., reboot or recv. Feel free to use the Internet.
+* 19 - MONOLITHIC OS
+  Every service that an application or piece of hardware might require is already part of
+  the operating system. Could include multiple file systems (unnecessarily).
+  - memory management
+  - device drivers
+  - file management
+  - process / thread
+  - scheduling
+  - FS for random I/O
+  - FS for sequential access
+** Benefits
+   - everything included
+   - inlining, compile-time optimizations
+** Downsides
+   - customization, portability, manageability... (hard to maintain/upgrade)
+   - memory footprint
+   - performance
+* 20 - MODULAR OS
