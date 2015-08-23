@@ -169,3 +169,67 @@
    - memory footprint
    - performance
 * 20 - MODULAR OS
+  Operating system has module interfaces. Able to dynamically install new modules.
+** Benefits
+   - maintainability
+   - small footprint
+   - less resource needs; more resources/memory available for applications
+** Downsides
+   - indirection can impact performance (reducing opportunities for optimization)
+   - maintenance can still be an issue (modules can come from disparate codebases and 
+     contain bugs)
+* 21 - Microkernel
+  Only require the most basic primitives at the OS level
+  - (Inter-process communication) IPC
+  - address space
+  - threads
+  Elements such as DB, FS, Disk Driver are at the user level with unprivileged access
+  This means that there is much more communication through IPC
+** Benefits
+   - size
+   - verifiability
+   Valuable benefits for embedded systems and control systems
+** Downsides
+   - portability (typically customized/specialized)
+   - complexity of software development
+   - cost of user / kernel crossing
+* 22 - LINUX AND MAC OS ARCHITECTURES
+** Linux Architecture
+*** Users                                              ====================
+**** ↑↑↑↑↑ USER INTERFACE ↓↓↓↓↓
+*** Standard Utility Programs                               USER MODE
+    - shell, editors, compilers, etc.
+**** ↑↑↑↑↑ LIBRARY INTERFACE ↓↓↓↓↓
+*** Standard Library                                   ====================
+    - open, close, read, write, fork, etc.
+**** ↑↑↑↑↑ SYSTEM CALL INTERFACE ↓↓↓↓↓
+*** Linux Operating System                                  KERNEL MODE
+    - process management, memory management, the file system, I/O, etc.
+*** Hardware
+    - CPU, memory, disks, terminals, etc.
+** Mac OS Architecture
+*** Graphical User Interface (Aqua)
+*** Application Environments and Services
+    - Java
+    - Cocoa
+    - Quicktime
+    - BSD (unix interoperability, POSIX)
+*** Kernel Environment (Mach) | BSD
+*** I/O kill
+*** Kernel Extensions
+* 23 - LESSON SUMMARY
+** OS Elements
+   - abstractions (processes and threads), mechanisms, and policies
+** Communication Betwen Applications and Os via System Calls
+** OS Organizations
+   - Linux and Mac OS
+* 24 - LESSON REVIEW
+  - What did you learn in this lesson?
+    I learned about the overall architecture of some common operating systems, including the
+    User Mode and the Kernel Mode (along with the privilege bit). I also learned about the 
+    importance of the OS in providing an abstraction layer over the hardware in order to 
+    simplify the means of interaction from applications. The operating system also plays
+    a vital role in allocating and managing system resources such as memory and access to 
+    the file system and CPU scheduling. There are various architectures and arrangements
+    that classify as operating systems, but they all involve the important tasks of 
+    resource management and abstraction of hardware implementation details.
