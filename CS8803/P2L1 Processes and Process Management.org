@@ -1,0 +1,243 @@
+* 01 - LESSON PREVIEW
+** What is a process?
+   - an instance of an executing program
+   - synonymous with "task" or "job"
+** How are processes represented by OS's?
+** How are multiple concurrent processes managed by OS's?
+* 02 - VISUAL METAPHOR
+  A PROCESS is like an ORDER OF TOYS. An ORDER OF TOYS requires:
+** Order of Toys
+*** State of Execution
+    - completed toys, toys waiting to be built
+*** Parts & Temporary Holding Area
+    - plastic pieces, wooden pieces, containers
+*** May Require Special Hardware
+    - sewing machine, glue gun
+** Process
+*** State of Execution
+    - program counter, stack pointer (help decide scheduling and swapping)
+*** Parts & Temporary Holding Area
+    - data, register state, occupies state in memory
+*** May Require Special Hardware
+    - I/O devices
+* 03 - WHAT IS A PROCESS?
+  - OS manages hardware on behalf of applications
+  - APPLICATION == program on disk, flash memory... (static entity [not executing])
+  - PROCESS == state of a program when executing, loaded in memory (active entity)
+    - represents the execution state of an active application
+* 04 - WHAT DOES A PROCESS LOOK LIKE?
+  -----------------  Vmax
+ |      stack      |
+ |      ...        |
+ |      heap       |
+ |      data       |
+ |      text       |
+  -----------------  V0
+
+** Types of State
+   - text (application code) and data
+     - static state when process first loads
+   - heap
+     - dynamically created during execution (allocate memory, store temporary results)
+   - stack
+     - grows and shrinks (LIFO queue)
+* 05 - PROCESS ADDRESS SPACE
+  Addresses between V0 and Vmax are virtual addresses used by the process to access
+  application instructions and data.
+  - ADDRESS SPACE == "in memory" representation of a process
+  - PAGE TABLES == mapping of virtual to physical addresses
+* 06 - ADDRESS SPACE AND MEMORY MANAGEMENT
+  - parts of virtual address space may not be allocated
+  - may not be enough physical memory for all state
+  - state may reside on disk and need to be swapped into memory during access
+  - for each process the operating system must maintain some information about the address
+    space for the process
+  - OS maintains the mapping of virtual addresses to the actual storage location of data
+    as well as validating that memory access is permitted for each process
+* 07 - VIRTUAL ADDRESS QUIZ
+  If two processes, P1 and P2, are running at the same time, what are the virtual address
+  space ranges they will have?
+  [-] P1: 0-32,000
+      P2: 32,001-64,000
+  [X] P1: 0-64,000
+      P2: 0-64,000
+  [-] P1: 32,001-64,000
+      P2: 0-32,000
+* 09 - PROCESS EXECUTION STATE
+** How Does the OS Know What a Process is Doing?
+   - program counter (tracks location of current instruction)
+   - CPU registers (hold values important to the execution of applications)
+   - stack pointer (points to the top of the stack [in application address space])
+   - ...
+   PROCESS CONTROL BLOCK (PCB) - keeps track of all this information for all processes
+* 10 - PROCESS CONTROL BLOCK
+** What is a Process Control Block?
+   PCB is a data structure maintained for every process it manages.
+   - process state
+   - process number
+   - program counter
+   - stack pointer
+   - registers
+   - memory limits
+   - list of open files
+   - priority
+   - signal mask
+   - CPU scheduling information
+   - ...
+** PCB is Created when the Process is Created
+** Certain Fields are Updated when Process State Changes
+   E.g., if new memory is allocated, fields are updated to address that change and new
+   values are calculated for the memory limits along with upating virtual to physical
+   memory mappings and valid regions.
+** Other Fields Change Too Frequently
+   In these cases, such as with the program counter, the CPU puts the value in registers
+   and the OS is responsible for updating these values in the PCB whenever the active
+   process is swapped out for a different process becoming active.
+* 11 - HOW IS A PCB USED
+  Each time the OS needs to switch between processes (Context Switching), the values from
+  the CPU registers which contain the info for the currently running process are stored
+  into memory (PCB) so that data for the newly active process can be loaded into the
+  registers from the PCB. When it is time to resume the first process, the state of the
+  second process is saved back into the PCB and the data for the first process is loaded
+  back into the registers from the PCB when execution can begin again from the point of
+  interruption (time-out, time-in).
+* 12 - WHAT IS A CONTEXT SWITCH
+** Context Switch
+   - switching the CPU from the context of one process to the context of another
+** Expensive
+   - direct costs: number of cycles for load and store instructions
+   - indirect costs: COLD cache! cache misses! 
+     Data that was in the processor cache hierarchy for P1 will be swapped out for data
+     from P2, so when P1 resumes, attempts to access data in cache for P1 will not be 
+     found in the cache (cache misses) and will have to be reloaded.
+** STRONG DESIRE TO LIMIT FREQUENCY OF CONTEXT SWITCHING
+* 13 - HOT CACHE QUIZ
+  For the following sentence, check all options that correctly complete it:
+  When a cache is hot...
+  [-] it can malfunction so we must context switch to another process
+  [X] most process data is in the cache so the process performance will be at its best
+  [X] sometimes we must context switch
+* 15 - PROCESS LIFE CYCLE STATES
+** Processes can be RUNNING or IDLE
+   READY (IDLE) -> Scheduler Dispatch -> RUNNING -> Interrupt -> READY ...
+** What other states can a process be in? How is that determined?
+*** NEW
+    When a NEW process gets ADMITTED, it enters the READY state
+*** READY
+    When a READY process gets DISPATCHED by the scheduler, it enters the RUNNING state
+*** RUNNING
+    When a RUNNING process gets INTERRUPTED, it enters the READY state
+    When a RUNNING process gets an I/O OR EVENT WAIT, it enters the WAITING state
+    When a RUNNING process is EXITED, it enters the TERMINATED state
+*** WAITING
+    When a WAITING process gets and I/O OR EVENT COMPLETION, it enters the READY state
+*** TERMINATED
+* 16 - PROCESS STATE QUIZ
+  The CPU is able to execute a process when the process is in which state(s)?
+  [X] RUNNING
+  [X] READY (the process is ready to be executed, but is just waiting for scheduling)
+  [-] WAITING
+  [-] NEW
+* 18 - PROCESS LIFE CYCLE CREATION
+  A process can create child processes
+  Tree structure with privileged root processes
+** Mechanisms for Process Creation
+   - fork
+     - copies the parent PCB into new child PCB
+     - child and parent have the exact same values in the PCB, including program counter
+     - child continues execution at instruction after fork
+   - EXEC
+     - replace child image
+     - load new program and start from first instruction
+* 19 - PARENT PROCESS QUIZ
+  On UNIX-based OSs, which process is often regarded as "the parent of all processes"?
+  - init
+  Extra credit: On the Android OS, which process is regarded as "the parent of all App
+  processes"?
+  - Zygote
+* 21 - ROLE OF THE CPU SCHEDULER
+  There will be multiple processes waiting in the ready queue. How do we choose
+  which process should be next to be processed by the CPU?
+** What is the role of the CPU scheduler?
+   A CPU Scheduler determines which one of the currently ready processes will be
+   dispatched to the CPU to start running, and how long it should run for.
+   - OS must... BE EFFICIENT!!
+     - preempt: interrupt and save current context
+     - schedule: run scheduler to choose next process
+     - dispatch: dispatch process & switch into its context
+* 22 - LENGTH OF A PROCESS
+** How Long Should a Process Run For? How Frequently Should We Run the Scheduler
+   The longer a process runs, the less frequently the scheduler gets run and vice
+   versa
+
+   |_Tp_|____|_Tp_|____|
+   Tp = time for process execution
+   t_sched = scheduling time
+   Useful CPU work:
+   Total processing time / Total time = (2*Tp)/(2*Tp + 2*t_sched)
+   if Tp = t_sched, only 50% of CPU time is spent on useful work!
+
+   |_____Tp_____|__|_____Tp_____|__|
+   if Tp = 10*t_sched, then ~91% of CPU time is spent on useful work!
+
+   TIMESLICE = time Tp allocated to a process on the CPU
+** Scheduling Design Decisions
+   - what are appropriate timeslice values?
+   - metrics to choose next process to run?
+* 23 - WHAT ABOUT I/O
+  --> READY --------------------------------> CPU ----->
+  |                                                 |
+   <-- I/O <--- I/O queue <---  I/O request <-------
+  |                                                 |
+   <-------------------- time slice expired <-------
+  |                                                 |
+   <----- child executes <---- fork a child <-------
+  |                                                 |
+   <-- interrupt occurs <-- wait for interrupt <----
+* 24 - SCHEDULER RESPONSIBILITY QUIZ
+  Which of the following ARE NOT a responsibility of the CPU scheduler?
+  [X] maintaining the I/O queue
+  [-] maintaining the ready queue
+  [-] deciding when to context switch
+  [X] deciding when to generate an event that a process is waiting on
+* 26 - INTER PROCESS COMMUNICATION
+  P1 (Web Server)           P2 (Database)
+** IPC Mechanisms
+   - transfer data/info between address spaces
+   - maintain protection and isolation
+   - provide flexibility and performance
+** Message-Passing ICP
+   - OS provides communication channel, like shared buffer
+   - processes write (send), read (recv) messages to/from channel
+*** PROS
+    - managed by the OS, consistent API for send/recv
+*** CONS
+    - overhead, copying data from user space into kernel memory to be read back into
+      user space by the second process
+** Shared-Memory IPC
+   - OS establishes a shared channel and maps it into each process address space
+   - processes directly read/write from this memory
+   - OS is out of the way!
+*** PROS
+    - OS is out of the way
+*** CONS
+    - OS is not defining well-worn APIs for reading/writing, so applications must
+      (re-)implement code; could be error prone
+* 27 - SHARED MEMORY QUIZ
+  Shared memory-based communication performs better than message passing communication
+  [-] True
+  [-] False
+  [X] It depends...
+      It depends on the implementation details of the reading and writing of each
+      application. There is a cost associated with setting up the mapping of shared
+      memory space for distinct processes. If that set-up cost can be justified by a
+      large number of shared messages, then it is worth it compared to what the cost
+      would be for copying the messages into kernel memory to be read by the other
+      process(es).
+* 29 - LESSON SUMMARY
+  PROCESSES AND PROCESS MANAGEMENT
+** Process and process-related abstractions
+   - address space and PCB
+** Basic mechanisms for managing process resources
+   - context switching, process creation, scheduling, inter process communication
+   
