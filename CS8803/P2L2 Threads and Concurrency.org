@@ -421,3 +421,134 @@
 ** Use a single mutex to access a single resource!
 ** Check that you are signaling the correct condition
 ** Check that you are not using signal when broadcast is needed
+   - signal: only 1 thread will proceed... remaining threads will continue to wait...
+     possibly indefinitely!!!
+** Ask yourself: do you need priority guarantees?
+   - thread execution order not controlled by signals to condition variables!
+** Spurious Wake-ups
+** Deadlocks
+* 29 - SPURIOUS WAKE-UPS
+  Spurious wake-ups == when we wake threads knowing they may not be able to proceed.
+  - pitfall that doesn't affect correctness but may impact performance.
+  #+BEGIN_SRC c
+    // WRITER
+    Lock(counter_mutex)
+    {
+            resource_counter = 0;
+            Broadcast(read_phase);
+            Signal(write_phase);
+    } // unlock;
+
+    // READERS
+    // elsewhere in the code...
+    Wait(counter_mutex, write/read_phase);
+  #+END_SRC
+  In the above situation, we see a Broadcast call from the writer. This wakes up any
+  readers who are waiting. They will attempt to get the mutex, but it may still be
+  locked because the writer has yet to run the Signal line and still has the lock.
+  These readers will no longer be in the Wait queue because they have been woken up
+  by the broadcast of the updated condition variable, but they must now wait in the
+  counter_mutex queue because they are unable to acquire the lock. This is what is
+  known as a spurious wake-up.
+
+  The way to avoid this in the case of the Writer is to change the code to the
+  following:
+  #+BEGIN_SRC c
+    // WRITER
+    Lock(counter_mutex)
+    {
+            resource_counter = 0;
+    } // unlock;
+
+    Broadcast(read_phase);
+    Signal(write_phase);
+  #+END_SRC
+  So, by placing the Broadcast and Signal outside of the lock, we know that when
+  another thread is woken up, we have already released the lock. In the case of the
+  following Readers, however, we cannot place the Signal outside the lock because
+  it relies on an if check on the very condition variable that we are using the lock
+  for.
+  #+BEGIN_SRC c
+    // IN READERS
+    Lock(counter_mutex)
+    {
+            resource_counter--;
+            if (resource_counter == 0) {
+                    Signal(write_phase);
+            }
+    } // unlock;
+  #+END_SRC
+* 30 - DEADLOCKS INTRODUCTION
+** Definition
+   Two or more competing threads are waiting on each other to complete, but none of
+   them ever does.
+** Toy Shop Example
+   In order for a worker to complete their task, they need to solder some component.
+   They need access to both the soldering iron and solder. One worker has the
+   soldering iron and is waiting on the solder. The other has the solder but is
+   waiting on the soldering iron. Neither will give up what they have so they are
+   deadlocked.
+* 31 - DEADLOCKS
+** Scenario
+   T1 and T2 both need to acquire locks for shared variables A and B because T1
+   needs to execute foo1(A,B) and T2 needs to execute foo2(A,B). If the order of
+   acquisition for T1 is lock(m_A) then lock(m_B) and the order of acquisition for
+   T2 is lock(m_B) then lock(m_A), then when T1 attempts to acquire the lock for B,
+   it is already held by T2, so it waits. Likewise, when T2 attempts to acquire the
+   lock for A, it is already held by T1, so it waits. This is the exact condition
+   for a deadlock because each thread is waiting on the other in a cycle.
+** How to Avoid This?
+*** Unlock A before locking B => fine-grained locking
+    - CON: threads need both A & B for the same operation
+*** Get all locks up front, then release at the end
+    OR use one MEGA lock
+    - PRO: for some applications, ok!
+    - CON: too restrictive => limits parallelism
+*** Maintain lock order
+    First m_A, then m_B
+    - PRO: will prevent cycles in wait graph; foolproof
+    - CON: may take some effort to ensure that order is adhered to in all instances
+* 32 - DEADLOCKS SUMMARY
+** Summary
+   A cycle in the wait graph is NECESSARY and SUFFICIENT for a deadlock to occur. The
+   wait graph is a graph where the edges go from a thread waiting on a resource to a
+   thread owning a resource.
+** What can we do about it?
+*** Deadlock prevention EXPENSIVE
+    Will a proposed operation result in a cycle in the graph?
+    If so, we might need to release a resource before we perform the lock request
+*** Deadlock detection & recovery ROLLBACK
+    Analyze the graph, maintain the ability to roll back by maintaining enough state
+*** Apply the Ostrich Algorithm REBOOT
+    Do nothing, and if all else fails, reboot
+** Summary of options
+   Deadlocks are a reality, but some of the solutions to deal with them are expensive
+   or difficult to implement if there are mutexes coming from different source files,
+   etc. There is overhead associated with both of the above solutions to deadlocks,
+   so for that reason, these techniques are usually only applied in performance-
+   critical applications.
+* 33 - CRITICAL SECTION QUIZ
+  A toy shop has the following policy:
+  At any point in time:
+  - max 3 new orders can be processed
+  - if only 1 new order is being processed, then any number of old orders can be 
+    processed
+    
+  #+BEGIN_SRC c
+    // toy_shop_entry_for_new_orders
+    lock(orders_mutex)
+    {
+            /** [INSERT CHECK HERE] **/ {
+                    wait(orders_mutex, new_cond);
+            }
+            new_order++;
+    }
+  #+END_SRC
+
+  Select the appropriate check that needs to be made for the critical section.
+  Check all that apply.
+
+  [-] while ((new_order == 3) || (new_order == 1 && old_order > 0))
+  [-] if ((new_order == 3) || (new_order == 1 && old_order > 0))
+  [-] while ((new_order >= 3) || (new_order == 1 && old_order >= 0))
+  [-] while ((new_order >= 3) || (new_order == 1 && old_order >= 1))
