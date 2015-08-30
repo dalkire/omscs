@@ -548,7 +548,159 @@
   Select the appropriate check that needs to be made for the critical section.
   Check all that apply.
 
-  [-] while ((new_order == 3) || (new_order == 1 && old_order > 0))
+  [X] while ((new_order == 3) || (new_order == 1 && old_order > 0))
+   - new_order++ will never increment past 3 because any time it equals 3,
+     we are telling the thread to wait
   [-] if ((new_order == 3) || (new_order == 1 && old_order > 0))
+   - the "if" conditional is not what we want here
   [-] while ((new_order >= 3) || (new_order == 1 && old_order >= 0))
-  [-] while ((new_order >= 3) || (new_order == 1 && old_order >= 1))
+   - old_order >= 0 blocks any new orders even if there are no old orders
+  [X] while ((new_order >= 3) || (new_order == 1 && old_order >= 1))
+* 35 - KERNEL- VS USER-LEVEL THREADS
+** Kernel-level Threads
+   - imply that the OS itself is multi-threaded
+** User-level Threads
+   - must be associated with a kernel-level thread
+   - OS-level scheduler must then schedule that kernel-level thread onto a CPU
+** What's the Relationship Between the User- and Kernel-Level Threads?
+   - several possible relationships
+   - we will look at three such models
+* 36 - MULTI-THREADING MODELS
+** One-to-One Model
+   - each user-level thread has an associated kernel-level thread
+*** PROS
+    - OS sees/understands threads, synchronization, blocking, ...
+*** CONS
+    - must go to OS for all operations (may be expensive)
+    - OS may have limits on policies, thread #
+    - portability
+** Many-to-One Model
+   - all the user-level threads are mapped to a single kernel-level thread
+   - thread-management library at user-level for deciding which thread gets mapped
+     to the kernel thread at any given time
+*** PROS
+    - totally portable, doesn't depend on OS limits and policies
+*** CONS
+    - OS has no insights into application needs
+    - OS may block entire process if one user-level thread blocks on I/O
+** Many-to-Many Model
+   - in some cases multiple threads can map to one kernel-level thread
+   - in other cases there can be a one-to-one mapping
+*** PROS
+    - can be the best of both worlds
+    - can have bound or unbound threads
+      - unbound: user-level threads may be scheduled on any kernel-level thread
+      - bound: a user-level thread is mapped to a single kernel-level thread 
+        permanently
+*** CONS
+    - requires coordination between user- and kernel-level thread managers
+* 37 - SCOPE OF MULTITHREADING
+** Process Scope (User-level)
+   - user-level library manages threads within a single process
+   - different processes may use different instances of the user-level library,
+     or may use a different thread management library altogether
+** System Scope (Kernel-level)
+   System will look at entire platform to determine how to allocate resources for
+   all threads.
+   - system-wide thread management by OS-level thread managers (e.g., CPU scheduler)
+** Example
+   A certain webserver has twice as many threads as the database it utilizes.
+*** Process scope:
+    The OS is not aware of how many threads the webserver process has versus the
+    database process, so each will get an equal share of CPU time, which will
+    cause a bottleneck for the webserver threads.
+*** System scope:
+    Because each process thread is visible at the system level, the OS can schedule
+    them in a more reasonable way. The individual threads can be balanced across 
+    CPUs instead of just the processes.
+* 38 - MULTITHREADING PATTERNS
+** Example: Toy Shop Application
+   For each wooden toy order, we...
+   1. accept the order
+   2. parse the order
+   3. cut wooden parts
+   4. paint and add decorations
+   5. assemble the wooden toys
+   6. ship the order
+      
+   Depending on the multithreading pattern, these steps will be assigned differently
+   to the workers in the workshop.
+** Boss-Workers Pattern
+** Pipeline Pattern
+** Layered Pattern
+* 39 - BOSS-WORKERS PATTERN
+  One boss thread and multiple worker threads. Since each piece of work must first be
+  handled by the boss thread, the throughput of the system is limited by the boss
+  thread => must keep boss efficient
+** Throughput = 1/boss_time_per_order
+** Boss-Workers
+   - boss: assigns work to the workers
+   - worker: performs entire task
+*** Boss: Step 1
+*** Workers: Steps 2-6
+** Boss Assigns Work by:
+*** directly signalling specific worker
+**** PROS
+     - workers don't need to synchronize amongst each other
+**** CONS
+     - boss must track what each worker is doing
+     - throughput will go down!
+*** placing work in a producer/consumer queue
+**** PROS
+     - boss doesn't need to know details about workers
+     - better throughput even with the issue of queue synchronization
+**** CONS
+     - queue synchronization
+* 40 - HOW MANY WORKERS
+  In the producer/consumer queue approach, if the queue is full, the boss must wait
+  for some workers to pick up items from the queue before new items can be added.
+  This wait time is detrimental to throughput. Increasing the number of threads
+  (workers) will allow for more items to be picked up from the queue, but adding
+  workers arbitrarily will potentially add unnecessary overhead to the system.
+** On Demand
+   - add workers dynamically
+   - can be inefficient if we have to wait a long time for a worker to arrive
+** Pool of Workers (Threads)
+   - created up front
+   - still the question of how many to allocate
+** Static vs Dynamic
+   - instead of creating a static pool, create a pool dynamically
+   - when pool size needs to be re-adjusted, create several new threads instead of
+     just one at a time
+** Boss-Workers Summary
+   - boss: assigns work to workers
+   - workers: perform entire task
+   - boss-workers communicate via producer/consumer queue
+   - worker pool: static or dynamic
+*** PROS
+    - simplicity
+*** CONS
+    - queue synchronization
+    - thread pool management
+    - ignores locality: if a worker just completed some task, it is likely they would
+      be the most efficient worker to do the task again (hot cache?)
+* 41 - BOSS-WORKERS VARIANTS
+  - all workers created equal
+  vs
+  - workers specialized for certain tasks
+** PROS
+   - better locality; quality of service management (assign more threads to those
+     tasks that require higher quality of service)
+** CONS
+   - load balancing (how many threads should we assign per task)
+* 42 - PIPELINE PATTERN
+  - Threads assigned one subtask in the system
+  - Entire tasks == pipeline of threads
+  - Multiple tasks concurrently in the system in different pipeline stages
+  - Throughput == weakest link -> pipeline stage == thread pool
+  - Shared-buffer based communication between stages
+** Pipeline Summary
+   - sequence of stages
+   - stage == subtask
+   - each stage == thread pool
+   - buffer-based communication
+*** PROS
+    - specialization and locality
+*** CONS
+    - balancing and synchronization overheads
+
